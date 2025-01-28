@@ -6,6 +6,10 @@ This Vehicle Rental System is a modern FastAPI-based backend service that enable
 Check out our demo video to see the system in action:
 
 
+https://github.com/user-attachments/assets/4bb6f9c1-6ee8-47b9-81a3-737d5f7fcebe
+
+
+
 ## Tech Stack 🛠️
 
 ### Core
