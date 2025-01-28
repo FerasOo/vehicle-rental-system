@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+
+{% block content %}
+<!-- Welcome Section -->
+<div class="text-center py-12">
+    <h1 class="text-4xl font-bold mb-4">Welcome to Vehicle Rental System</h1>
+    <p class="text-xl text-gray-600 mb-8">Find and rent your perfect vehicle today</p>
+    
+    <!-- Quick Stats -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
+        <div class="bg-white p-6 rounded-lg shadow-md">
+            <h3 class="text-lg font-semibold mb-2">Available Vehicles</h3>
+            <p class="text-3xl font-bold text-blue-600" id="vehicles-count">
+                Loading...
+            </p>
+        </div>
+        <div class="bg-white p-6 rounded-lg shadow-md">
+            <h3 class="text-lg font-semibold mb-2">Locations</h3>
+            <p class="text-3xl font-bold text-green-600" id="branches-count">
+                Loading...
+            </p>
+        </div>
+        <div class="bg-white p-6 rounded-lg shadow-md">
+            <h3 class="text-lg font-semibold mb-2">Active Rentals</h3>
+            <p class="text-3xl font-bold text-purple-600" id="rentals-count">
+                Loading...
+            </p>
+        </div>
+    </div>
+</div>
+{% endblock %}

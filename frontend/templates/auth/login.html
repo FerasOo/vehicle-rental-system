@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="max-w-md mx-auto bg-white p-8 rounded-lg shadow-md">
+    <form id="loginForm">
+        <div class="mb-4">
+            <label class="block text-gray-700 mb-2">Email</label>
+            <input type="email" 
+                   name="username" 
+                   class="w-full p-2 border rounded focus:border-blue-500 focus:outline-none"
+                   required>
+        </div>
+        
+        <div class="mb-6">
+            <label class="block text-gray-700 mb-2">Password</label>
+            <input type="password" 
+                   name="password" 
+                   class="w-full p-2 border rounded focus:border-blue-500 focus:outline-none"
+                   required>
+        </div>
+
+        <div id="error-message" class="text-red-600 mb-4 hidden"></div>
+        
+        <div class="flex flex-col gap-4">
+            <button type="submit" 
+                    class="w-full bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600 transition duration-200">
+                Login
+            </button>
+
+            <div class="text-center text-gray-600">
+                Don't have an account? 
+                <a href="/auth/register" class="text-blue-500 hover:underline">
+                    Register here
+                </a>
+            </div>
+        </div>
+    </form>
+</div>
+
+<script>
+    document.getElementById('loginForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const formData = new FormData(this);
+        
+        try {
+            const response = await fetch('/token', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                body: new URLSearchParams({
+                    username: formData.get('username'),
+                    password: formData.get('password')
+                })
+            });
+            
+            const result = await response.json();
+            
+            if (response.ok) {
+                localStorage.setItem('token', result.access_token);
+                window.location.href = '/';
+            } else {
+                const errorDiv = document.getElementById('error-message');
+                errorDiv.textContent = result.detail || 'Login failed';
+                errorDiv.classList.remove('hidden');
+            }
+        } catch (error) {
+            const errorDiv = document.getElementById('error-message');
+            errorDiv.textContent = 'An error occurred during login';
+            errorDiv.classList.remove('hidden');
+        }
+    });
+</script>
+{% endblock %}

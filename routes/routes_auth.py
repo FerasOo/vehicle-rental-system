@@ -2,7 +2,8 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from datetime import timedelta
 from colorama import Fore, Style, init
-
+from schemas import User
+from middleware.auth import get_current_user
 init(autoreset=True)
 
 from middleware.auth import (

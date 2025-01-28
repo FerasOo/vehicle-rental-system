@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vehicle Rental System</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body class="bg-gray-100">
+    <div id="notifications" class="fixed top-4 right-4 z-50"></div>
+    
+    <!-- Header -->
+    <header class="bg-white shadow-md">
+        <nav class="container mx-auto px-6 py-4">
+            <div class="flex justify-between items-center">
+                <h1 class="text-xl font-bold">Vehicle Rental</h1>
+                <div class="space-x-4">
+                    <a href="/" class="hover:text-blue-600">Home</a>
+                    <a href="/vehicles" class="hover:text-blue-600">Vehicles</a>
+                    <a href="/rentals" class="hover:text-blue-600">Rentals</a>
+                    <a href="/branches" class="hover:text-blue-600">Branches</a>
+                    <span id="auth-section">
+                        <a href="/auth/login" class="hover:text-blue-600">Login</a>
+                        <a href="/auth/register" class="hover:text-blue-600">Register</a>
+                    </span>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-6 py-8">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white shadow-md mt-8">
+        <div class="container mx-auto px-6 py-4 text-center">
+            <p>© 2024 Vehicle Rental System</p>
+        </div>
+    </footer>
+
+    <!-- Add WebSocket status div -->
+    <div id="ws-status" class="fixed bottom-4 right-4 bg-gray-800 text-white px-4 py-2 rounded-lg opacity-75">
+        Disconnected
+    </div>
+
+    <!-- Combine all JavaScript in one script tag at the end of body -->
+    <script>
+        // JWT Parser function
+        function parseJwt(token) {
+            try {
+                const base64Url = token.split('.')[1];
+                const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+                const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+                    return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+                }).join(''));
+                return JSON.parse(jsonPayload);
+            } catch (error) {
+                console.error('Error parsing JWT:', error);
+                return null;
+            }
+        }
+
+        // WebSocket connection
+        let ws = null;
+        const wsStatus = document.getElementById('ws-status');
+
+        function connectWebSocket(userId) {
+            if (ws) {
+                ws.close();
+            }
+
+            ws = new WebSocket(`ws://localhost:8000/ws/${userId}`);
+            
+            ws.onopen = () => {
+                wsStatus.textContent = 'Connected';
+                wsStatus.classList.add('bg-green-600');
+                wsStatus.classList.remove('bg-gray-800', 'bg-red-600');
+            };
+
+            ws.onclose = () => {
+                wsStatus.textContent = 'Disconnected';
+                wsStatus.classList.add('bg-gray-800');
+                wsStatus.classList.remove('bg-green-600', 'bg-red-600');
+            };
+
+            ws.onerror = () => {
+                wsStatus.textContent = 'Error';
+                wsStatus.classList.add('bg-red-600');
+                wsStatus.classList.remove('bg-green-600', 'bg-gray-800');
+            };
+
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                showNotification(data.message || 'New update received', data.type || 'info');
+            };
+        }
+
+        // Authentication UI functions
+        function updateAuthUI() {
+            const token = localStorage.getItem('token');
+            const authSection = document.getElementById('auth-section');
+            
+            if (token) {
+                authSection.innerHTML = `
+                    <button onclick="logout()" class="hover:text-blue-600">Logout</button>
+                `;
+            } else {
+                authSection.innerHTML = `
+                    <a href="/auth/login" class="hover:text-blue-600">Login</a>
+                    <a href="/auth/register" class="hover:text-blue-600">Register</a>
+                `;
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('token');
+            updateAuthUI();
+            window.location.href = '/';
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            const token = localStorage.getItem('token');
+            if (token) {
+                const userId = parseJwt(token).sub;
+                connectWebSocket(userId);
+                updateAuthUI();
+            }
+
+            // If we're on the home page, load the stats
+            if (document.getElementById('vehicles-count')) {
+                loadStats();
+            }
+        });
+
+        // Stats loading function (only used on home page)
+        async function loadStats() {
+            try {
+                const [vehiclesCount, branchCount, rentalsCount] = await Promise.all([
+                    fetch('/api/stats/available-vehicles').then(r => r.json()),
+                    fetch('/api/stats/branch-count').then(r => r.json()),
+                    fetch('/api/stats/active-rentals').then(r => r.json())
+                ]);
+
+                document.getElementById('vehicles-count').textContent = vehiclesCount;
+                document.getElementById('branches-count').textContent = branchCount;
+                document.getElementById('rentals-count').textContent = rentalsCount;
+            } catch (error) {
+                console.error('Error loading stats:', error);
+            }
+        }
+    </script>
+</body>
+</html>

@@ -2,6 +2,13 @@
 
 This Vehicle Rental System is a modern FastAPI-based backend service that enables vehicle rental management with real-time updates. It features JWT authentication, role-based access control (customer/employee), and event-driven architecture using Apache Kafka for system events. It uses MongoDB as the database backend. Real-time updates are handled via WebSocket connections, allowing instant notifications for rental requests, approvals, and vehicle status changes.
 
+## Frontend Interface 🎨 (Work in Progress)
+
+The project now includes a web-based frontend interface built with:
+- Jinja2 Templates 📝
+- FastAPI's built-in template serving
+- Basic statistics dashboard
+
 ## Demo 🎥
 Check out our demo video to see the system in action:
 

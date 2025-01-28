@@ -1,0 +1,243 @@
+{% extends "base.html" %}
+
+{% block content %}
+<link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+
+<div class="container mx-auto px-4">
+    <div id="notification" class="fixed top-4 right-4 hidden">
+        <div class="px-4 py-2 rounded shadow-lg"></div>
+    </div>
+    <!-- Page Header -->
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-2xl font-bold">Branches</h1>
+        <div id="employee-actions" class="hidden">
+            <button onclick="showAddBranchModal()" 
+                    class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+                Add Branch
+            </button>
+        </div>
+    </div>
+
+    <!-- Branches Grid -->
+    <div id="branches-grid" class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <!-- Branches will be loaded here dynamically -->
+    </div>
+</div>
+
+<!-- Add/Edit Branch Modal -->
+<div id="branchModal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center">
+    <div class="bg-white p-6 rounded-lg w-full max-w-md">
+        <h2 id="modalTitle" class="text-xl font-bold mb-4">Add Branch</h2>
+        <form id="branchForm">
+            <div class="mb-4">
+                <label class="block text-sm font-medium mb-1">Branch ID</label>
+                <input type="text" name="branch_id" class="w-full p-2 border rounded" required>
+            </div>
+            <div class="mb-4">
+                <label class="block text-sm font-medium mb-1">Name</label>
+                <input type="text" name="name" class="w-full p-2 border rounded" required>
+            </div>
+            <div class="mb-4">
+                <label class="block text-sm font-medium mb-1">Location</label>
+                <input type="text" name="location" class="w-full p-2 border rounded" required>
+            </div>
+            <div class="mb-4">
+                <label class="block text-sm font-medium mb-1">Contact Number</label>
+                <input type="tel" name="contact_number" class="w-full p-2 border rounded" required>
+            </div>
+            <div class="flex justify-end gap-2">
+                <button type="button" onclick="closeModal()" 
+                        class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">
+                    Cancel
+                </button>
+                <button type="submit" 
+                        class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+                    Save
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+let currentUser = null;
+
+// Initialize page
+async function initializePage() {
+    const token = localStorage.getItem('token');
+    console.log('Token:', token); // Debug token
+    if (token) {
+        try {
+            const response = await fetch('/api/users/me', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            currentUser = await response.json();
+            console.log('Current user:', currentUser); // Debug user data
+            document.getElementById('employee-actions').classList.remove('hidden');
+        } catch (error) {
+            console.error('Error fetching user:', error);
+        }
+    }
+    loadBranches();
+}
+
+// Load branches
+async function loadBranches() {
+    try {
+        const response = await fetch('/api/branches/', {
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+            }
+        });
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const branches = await response.json();
+        if (!branches || !Array.isArray(branches)) {
+            throw new Error('Invalid data received from server');
+        }
+        displayBranches(branches);
+    } catch (error) {
+        console.error('Error loading branches:', error);
+        showNotification('Error loading branches: ' + error.message, 'error');
+    }
+}
+
+// Display branches in grid
+function displayBranches(branches) {
+    const grid = document.getElementById('branches-grid');
+    grid.innerHTML = branches.map(branch => `
+        <div class="bg-white p-4 rounded-lg shadow">
+            <h3 class="text-lg font-semibold mb-2">${branch.name}</h3>
+            <p class="text-gray-600">Location: ${branch.location}</p>
+            <p class="text-gray-600">Contact: ${branch.contact_number}</p>
+            <div class="mt-4 flex gap-2">
+                <button onclick="editBranch('${branch._id}')" 
+                        class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+                    Edit
+                </button>
+                <button onclick="deleteBranch('${branch._id}')" 
+                        class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">
+                    Delete
+                </button>
+            </div>
+        </div>
+    `).join('');
+}
+
+function showAddBranchModal() {
+    document.getElementById('modalTitle').textContent = 'Add Branch';
+    document.getElementById('branchForm').reset();
+    document.getElementById('branchModal').classList.remove('hidden');
+}
+
+function closeModal() {
+    document.getElementById('branchModal').classList.add('hidden');
+}
+
+async function editBranch(branchId) {
+    try {
+        const response = await fetch(`/api/branches/${branchId}`, {
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+            }
+        });
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const branch = await response.json();
+        if (!branch || !branch._id) {
+            throw new Error('Invalid branch data received');
+        }
+        
+        document.getElementById('modalTitle').textContent = 'Edit Branch';
+        const form = document.getElementById('branchForm');
+        form.elements['branch_id'].value = branch._id;
+        form.elements['name'].value = branch.name || '';
+        form.elements['location'].value = branch.location || '';
+        form.elements['contact_number'].value = branch.contact_number || '';
+        document.getElementById('branchModal').classList.remove('hidden');
+    } catch (error) {
+        console.error('Error loading branch details:', error);
+        showNotification('Error loading branch details: ' + error.message, 'error');
+    }
+}
+
+async function deleteBranch(branchId) {
+    if (confirm('Are you sure you want to delete this branch?')) {
+        try {
+            const response = await fetch(`/api/branches/${branchId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                }
+            });
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            showNotification('Branch deleted successfully', 'success');
+            document.location.reload();
+        } catch (error) {
+            console.error('Error deleting branch:', error);
+            showNotification('Error deleting branch: ' + error.message, 'error');
+        }
+    }
+}
+
+// Handle form submission
+document.getElementById('branchForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const formData = new FormData(this);
+    const data = Object.fromEntries(formData);
+    const isEdit = data.branch_id && document.getElementById('modalTitle').textContent === 'Edit Branch';
+    
+    if (!isEdit) {
+        data._id = data.branch_id;
+        delete data.branch_id;
+    }
+    
+    try {
+        const response = await fetch(`/api/branches/${isEdit ? data.branch_id : ''}`, {
+            method: isEdit ? 'PUT' : 'POST',
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(data)
+        });
+        
+        if (response.ok) {
+            closeModal();
+            showNotification(`Branch ${isEdit ? 'updated' : 'created'} successfully`, 'success');
+            // Reload page after a slight delay
+            setTimeout(() => {
+                window.location.reload();
+            }, 500);
+        } else {
+            const error = await response.json();
+            showNotification(error.detail || 'Operation failed', 'error');
+        }
+    } catch (error) {
+        console.error('Error performing operation:', error);
+        showNotification('Error performing operation: ' + error.message, 'error');
+    }
+});
+
+// Initialize page when DOM is loaded
+document.addEventListener('DOMContentLoaded', initializePage);
+
+function showNotification(message, type) {
+    Toastify({
+        text: message,
+        duration: 3000,
+        gravity: "top",
+        position: "right",
+        style: {
+            background: type === 'success' ? "#48BB78" : "#F56565",
+        },
+        stopOnFocus: true
+    }).showToast();
+}
+</script>
+{% endblock %} 
